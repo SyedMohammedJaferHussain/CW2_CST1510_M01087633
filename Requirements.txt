@@ -1,3 +1,1 @@
-pandas
-math
-random
+bcrypt==4.2.0
