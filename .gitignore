@@ -4,3 +4,4 @@ __pycache__/
 .vscode/
 .idea/
 users.txt
+.streamlit/secrets.toml
