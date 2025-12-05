@@ -19,7 +19,7 @@ def CreateCyberIncidentsTable(conn):
     
     cursor = conn.cursor()
     cursor.execute("""
-        CREATE TABLE IF NOT EXISTS Users (
+        CREATE TABLE IF NOT EXISTS Cyber_Incidents (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             date TEXT,
             incident_type TEXT,
@@ -41,12 +41,12 @@ def CreateDatasetsMetadataTable(conn):
     """
     cursor = conn.cursor()
     cursor.execute("""
-        CREATE TABLE IF NOT EXISTS Users (
+        CREATE TABLE IF NOT EXISTS Datasets_Metadata (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             dataset_name TEXT NOT NULL,
-            category: TEXT,
-            source: TEXT,
-            last_updated: TEXT,
+            category TEXT,
+            source TEXT,
+            last_updated TEXT,
             record_count INTEGER,
             file_size_mb REAL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -61,27 +61,33 @@ def CreateITTicketsTable(conn):
     """
     cursor = conn.cursor()
     cursor.execute("""
-        CREATE TABLE IF NOT EXISTS Users (
-            id: INTEGER PRIMARY KEY AUTOINCREMENT
-            ticket_id: TEXT UNIQUE NOT NULL
-            priority: TEXT 
-            status: TEXT 
-            category: TEX
-            subject: TEXT NOT NULL
-            description: TEXT
-            created_date: TEXT
-            resolved_date: TEXT
-            assigned_to: TEXT
-            created_at: TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        CREATE TABLE IF NOT EXISTS IT_Tickets (
+            id INTEGER PRIMARY KEY AUTOINCREMENT
+            ticket_id TEXT UNIQUE NOT NULL
+            priority TEXT 
+            status TEXT 
+            category TEX
+            subject TEXT NOT NULL
+            description TEXT
+            created_date TEXT
+            resolved_date TEXT
+            assigned_to TEXT
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     """)
     conn.commit()
 
 
 
-def create_all_tables(conn):
+def CreateAllTables():
     """Create all tables."""
+    import sqlite3
+    from pathlib import Path
+
+    conn = sqlite3.connect(Path("DATA") / "intelligence_platform.db")
+    #cursor = conn.cursor()
+    #cursor.execute("")
     CreateUsersTable(conn)
     CreateCyberIncidentsTable(conn)
     CreateDatasetsMetadataTable(conn)
-    CreateITTicketsTable(conn)
+    #CreateITTicketsTable(conn)

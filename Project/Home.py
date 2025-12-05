@@ -1,6 +1,7 @@
 import streamlit as st
 import app.services.user_service as LoginRegister
-import auth 
+import auth
+
 st.set_page_config(page_title="Login / Register", page_icon="🔑", layout="centered")
 
 # ---------- Initialise session state ----------

@@ -17,23 +17,41 @@ def InsertIncident(date, incident_type, severity, status, description, reported_
     return incident_id
 
 
-def GetAllIncidents(filter: str):
+def GetIncidentsQuery(filter):
+    """
+        Returns query with filter if filter exist
+    """
+    #if filter:
+        #return f"SELECT * FROM cyber_incidents WHERE {filter}"
+    
+    return "SELECT * FROM cyber_incidents"
+
+
+def GetAllIncidents(filter):
     """
         Get all incidents as DataFrame.
         Takes filter: str as parameter and filters incidents
     """
     conn = connect_database()
-    df = pd.read_sql_query(
-        f"SELECT * FROM cyber_incidents ORDER BY id DESC WHERE {filter}",
-        conn
-    )
+    #query = GetIncidentsQuery(filter)
+    df = pd.read_sql_query("SELECT id, incident_type FROM Cyber_Incidents", conn)
     conn.close()
+    
     return df
 
 
 def TotalIncidents(filter: str) -> int:
     conn = connect_database()
-    query: str = f"SELECT * FROM Cyber_Incidents WHERE {filter}"
+    query = GetIncidentsQuery(filter)
     totalInc = pd.read_sql_query(query, conn)
     
     return len(totalInc)
+
+def TransferCSV():
+    from pathlib import Path
+    import csv
+    conn = connect_database()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM Cyber_Incidents WHERE id = 1")
+    conn.commit()
+    conn.close()
