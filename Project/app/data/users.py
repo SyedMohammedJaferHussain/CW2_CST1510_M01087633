@@ -13,13 +13,13 @@ def GetUserByUsername(username):
     return user
 
 
-def InsertUser(username, password_hash, role='user'):
+def InsertUser(username, password_hash):
     """Insert new user."""
     conn = connect_database()
     cursor = conn.cursor()
     cursor.execute(
-        "INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)",
-        (username, password_hash, role)
+        "INSERT INTO users (username, password_hash) VALUES (?, ?)",
+        (username, password_hash)
     )
     conn.commit()
     conn.close()

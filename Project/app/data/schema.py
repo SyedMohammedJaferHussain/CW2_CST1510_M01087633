@@ -6,7 +6,6 @@ def CreateUsersTable(conn):
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             username TEXT NOT NULL UNIQUE,
             password_hash TEXT NOT NULL,
-            role TEXT DEFAULT 'user'
         )
     """)
     conn.commit()
@@ -25,8 +24,6 @@ def CreateCyberIncidentsTable(conn):
             incident_type TEXT,
             severity TEXT,
             status TEXT,
-            description TEXT,
-            reported_by TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     """)
@@ -45,9 +42,6 @@ def CreateDatasetsMetadataTable(conn):
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             dataset_name TEXT NOT NULL,
             category TEXT,
-            source TEXT,
-            last_updated TEXT,
-            record_count INTEGER,
             file_size_mb REAL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
@@ -74,14 +68,15 @@ def CreateITTicketsTable(conn):
     conn.commit()
 
 
-
-def CreateAllTables():
-    """Create all tables."""
+def CreateAllTables() -> None:
+    """
+        Explanation: Creates Users, Cyber_Incidents, Datasets_Metadata, It_Tickets Tables in intelligence_platform.db
+    """
     import sqlite3
     from pathlib import Path
 
     conn = sqlite3.connect(Path("DATA") / "intelligence_platform.db")
-    CreateUsersTable(conn)
+    #CreateUsersTable(conn)
     CreateCyberIncidentsTable(conn)
     CreateDatasetsMetadataTable(conn)
-    CreateITTicketsTable(conn)
+    #CreateITTicketsTable(conn)

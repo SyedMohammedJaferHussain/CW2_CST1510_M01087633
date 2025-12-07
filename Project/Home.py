@@ -5,8 +5,11 @@ import auth
 
 
 def LoginCheck() -> None:
+    """
+        Checks if user has logged in through Login Page. Sets values to False/None if not
+    """
     if "users" not in st.session_state:
-        # Very simple in-memory "database": {username: password}
+        
         st.session_state.users = {}
 
     if "logged_in" not in st.session_state:
@@ -17,13 +20,21 @@ def LoginCheck() -> None:
 
 
 def ConfigLayout():
+    """
+        Configures page layout and creates tabs for login and register
+        Returns: tab_login, tab_register: DeltaGenerator (Tabs)
+    """
     st.set_page_config(page_title="Login / Register", page_icon="🔑", layout="centered")
-    st.title("🔐 Welcome")
+    st.title("Welcome")
     tab_login, tab_register = st.tabs(["Login", "Register"])
     return tab_login, tab_register
 
 
-def GoCyber():   
+def GoCyber() -> None:
+    """
+        Checks if user's logged in, if yes switches page to Cyber_Analytics.py
+        Returns: None
+    """
     if st.session_state.logged_in:
         st.success(f"Already logged in as **{st.session_state.username}**.")
         if st.button("Go to cyber analytics"):
@@ -32,20 +43,29 @@ def GoCyber():
         st.stop()  # Don’t show login/register again
 
 
-def Login(loginTab):
+def Login(loginTab) -> None:
+    """
+        Explanation: 
+            Creates textboxes for user input for username and password. 
+            When button pressed, goes to user_service.py and checks if login is successful.
+            If yes, goes to Cyber_Analytics
+            
+        Args:
+            loginTab (_DeltaGenerator_): Tab in which login widgets go in
+    """
     with loginTab:
         st.subheader("Login")
 
-        login_username = st.text_input("Username", key="login_username")
-        login_password = st.text_input("Password", type="password", key="login_password")
+        loginUsername = st.text_input("Username", key="login_username")
+        loginPasswd = st.text_input("Password", type="password", key="login_password")
 
         if st.button("Log in", type="primary"):
             # Simple credential check (for teaching only – not secure!)
-            loginSuccess: tuple = LoginRegister.LoginUser(login_username, login_password)
+            loginSuccess: tuple = LoginRegister.LoginUser(loginUsername, loginPasswd)
             if loginSuccess[0]:
                 st.session_state.logged_in = True
-                st.session_state.username = login_username
-                st.success(f"Welcome back, {login_username}! ")
+                st.session_state.username = loginUsername
+                st.success(f"Welcome back, {loginUsername}! ")
 
                 # Redirect to dashboard page
                 st.switch_page("pages/1_Cyber Analytics.py")
@@ -54,6 +74,15 @@ def Login(loginTab):
 
 
 def Register(registerTab): 
+    """
+        Explanation:
+            Gets user input through widgets for username, password, and confirm password
+            When button press, goes to auth.py and validates username and password.
+            If validated, registers through user_service.py
+            If not validated, displays appropriate warning/error
+        Args:
+            registerTab (_DeltaGenerator_): _description_
+    """
     with registerTab:
         st.subheader("Register")
 
@@ -65,15 +94,13 @@ def Register(registerTab):
             # Basic checks – again, just for teaching
             if not new_username or not new_password:
                 st.warning("Please fill in all fields.")
-            elif new_password != confirm_password:
-                st.error("Passwords do not match.")
             
             checkValidName: tuple = auth.ValidateUserName(new_username)
             checkValidPWrd: tuple = auth.ValidatePassWd(new_password, confirm_password)
-            if not checkValidName[0]:
+            if checkValidName[0] == False:
                 st.error(checkValidName[1])
-            if not checkValidPWrd[0]:
-                st.error(checkValidPWrd[1])
+            if checkValidPWrd[0] == False:
+                st.write(new_password == confirm_password)
             
             checkRegister: tuple = LoginRegister.RegisterUser(new_username, new_password)
             if not checkRegister[0]: #Failure
@@ -85,7 +112,7 @@ def Register(registerTab):
                 st.info("Tip: go to the Login tab and sign in with your new account.")
 
 
-if __name__ == "__main__":
+if __name__ == "__main__": 
     Schema.CreateAllTables()
     LoginCheck()
     GoCyber()

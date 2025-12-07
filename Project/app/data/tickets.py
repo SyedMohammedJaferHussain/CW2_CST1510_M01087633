@@ -46,6 +46,29 @@ def TotalTickets(filter: str) -> int:
 def InsertTicket(tID: str, sub: str, prio: str, status: str, crDate: str):
     conn = db.connect_database()
     cursor = conn.cursor()
-    cursor.execute("INSERT INTO It_Tickets (ticket_id, subject, priority, status, created_date) VALUES (?, ?, ?, ?, ?)", (tID, sub, prio, status, crDate))
+    cursor.execute("""INSERT INTO It_Tickets (ticket_id, subject, priority, status, created_date) 
+                      VALUES (?, ?, ?, ?, ?)""", (tID, sub, prio, status, crDate))
+    conn.commit()
+    conn.close()
+    
+
+def UpdateTicket(id: str, newId: str, newSub: str, newPrio: str, newStat :str, newDate: str):
+    conn = db.connect_database()
+    cursor = conn.cursor()
+    cursor.execute(f"""UPDATE IT_Tickets
+                    SET ticket_id = ?, subject = ?, priority = ?, status = ?, created_date = ?
+                    WHERE ticket_id = ?""", (newId, newSub, newPrio, newStat, newDate, id))
+    cursor.execute("SELECT * FROM IT_Tickets ORDER BY id desc")
+    print(cursor.fetchone())
+    conn.commit()
+    conn.close()
+
+
+def DeleteTicket(id: str):
+    conn = db.connect_database()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM It_Tickets WHERE ticket_id = ?", (id, ))
+    cursor.execute("SELECT * FROM IT_Tickets WHERE ticket_id = '36'")
+    print(cursor.fetchone())
     conn.commit()
     conn.close()
