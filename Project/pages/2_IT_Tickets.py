@@ -1,7 +1,8 @@
 import streamlit as st
-import app.data.tickets as tickets
+import app.data.ticketsOOP as ticketsOOP
 import plotly.express as exp
 from openai import OpenAI
+from matplotlib.pyplot import subplots
 
 
 def Debug(*args) -> None:
@@ -30,7 +31,7 @@ def CheckLogIn() -> None:
         if st.button("Go to login page"):
             st.switch_page("Home.py")   #Back to the home page
         st.stop()
-        
+
 
 def SelectCol():
     """
@@ -38,6 +39,7 @@ def SelectCol():
         Returns: selectCol (_str_): Contains column selected by user
     """
     st.divider()
+    st.subheader("Bar Chart")
     selectedCol: str = st.selectbox("X Axis", ("subject", "priority", "status"))
     return selectedCol
     
@@ -46,7 +48,7 @@ def RowColumnCnt(column: str):
     """
         Displays number of rows in the bar chart filtered output
     """
-    rowCnt = tickets.TotalTickets(filterQuery, column)
+    rowCnt = ticketsOOP.TotalTickets(filterQuery, column)
     st.text(f"Row Count: {rowCnt}")
     
 
@@ -58,11 +60,10 @@ def BarChart(df, xAxis: str):
             xAxis (_str_): Contains the attribute from It_Tickets which will be shown on IT_Tickets
     """
     bar = exp.bar(df, x = xAxis)
-    st.subheader("IT Tickets")
     st.plotly_chart(bar)
 
 
-def FilterQuery(idStart: str, idStop: str, title: tuple, severity :tuple, status: tuple, dateStart :str, dateStop: str) -> str:
+def FilterConditions(idStart: str, idStop: str, title: tuple, severity :tuple, status: tuple, dateStart :str, dateStop: str):
     """
         Explanation: 
             Checks which filter widgets are filled and creates SQL query based off them
@@ -96,10 +97,27 @@ def FilterQuery(idStart: str, idStop: str, title: tuple, severity :tuple, status
             queries += (f"status IN {status}", )
     if dateStart: #Selected as today by default
         queries += (f"created_date BETWEEN '{dateStart}' AND '{dateStop}'", )
+        
+    return queries
 
+
+def FilterQuery(idStart: str, idStop: str, title: tuple, severity :tuple, status: tuple, dateStart :str, dateStop: str) -> None:
+    """
+        Explanation: 
+            Gets filter conditions and creates sql query using FilterConditions. It then applies to global filterQuery
+        Args:
+            idStart (_str_): Start range of ID
+            idStop (_str_): Stop range of ID
+            title (_tuple_): Titles to check for
+            severity (_tuple_): Severity to check for
+            status (_tuple_): Status to check for
+            dateStart (_str_): Start range of date
+            dateStop (_str_): Stop range of date
+    """
+    queries = FilterConditions(idStart, idStop, title, severity, status, dateStart, dateStop)
     query: str = ""
     noQueries: int = len(queries)
-    Debug(queries)
+    
     if len(queries) == 1:
         query = queries[0]
     for i in range(noQueries - 1): #To make sure last query doesn't have "AND" at the end
@@ -109,7 +127,6 @@ def FilterQuery(idStart: str, idStop: str, title: tuple, severity :tuple, status
     
     global filterQuery
     filterQuery = query
-    return query
     
 
 def Filters() -> None:
@@ -117,6 +134,10 @@ def Filters() -> None:
         Creates widgets for filters which include textboxes, checkboxes, and date inputs
         When apply filters button clicked, pass user input values to FilterQuery()
     """
+    Debug(curTab)
+    if curTab != "Analysis": #Only show when on analysis tab
+        return
+    
     with st.sidebar:
         st.title("Filters")
         
@@ -150,12 +171,10 @@ def BarCheck(column: str) -> None:
         It then calls BarChart() with 
     """
     if filterApply:
-        data = tickets.GetAllTickets(filterQuery, column)
-        print(data)
+        data = ticketsOOP.GetAllTickets(filterQuery, column)
         BarChart(data, column)
     else:
-        data = tickets.GetAllTickets("", column)
-        print(data)
+        data = ticketsOOP.GetAllTickets("", column)
         BarChart(data, column)
 
 
@@ -165,7 +184,9 @@ def Table():
         Contains all filtered records
     """
     st.divider()
-    data = tickets.GetTable(filterQuery)
+    st.header("Analysis")
+    st.subheader("Table")
+    data = ticketsOOP.GetTable(filterQuery)
     st.dataframe(data)
 
 
@@ -175,8 +196,16 @@ def LineChart():
         Contains all dates grouped by amount of records in each date
     """
     st.divider()
-    data = tickets.GetDates(filterQuery)
+    st.subheader("Line Chart")
+    data = ticketsOOP.GetDates(filterQuery)
     st.line_chart(data, x = "created_date", color = "#5bcf7a")
+
+
+def PieChart():
+    """
+        Created pie chart using
+    """
+    
 
 
 def PromptTicketInfo() -> tuple:
@@ -197,7 +226,7 @@ def CUDTicket():
         Contains functions for creating, updating, and deleting tickets
     """
     st.divider()
-    st.subheader("CUD Operations")
+    st.header("CUD Operations")
     cudChoice: str = st.selectbox("Operation", ("Create Ticket", "Update Ticket", "Delete Ticket"))
     
     st.subheader(cudChoice)
@@ -218,13 +247,13 @@ def CUDTicket():
         #Calling necessary functions for each CUD Operation
         match cudChoice:
             case "Create Ticket":
-                tickets.InsertTicket(tId, subjectType, priority, status, date) # type: ignore
+                ticketsOOP.InsertTicket(tId, subjectType, priority, status, date) # type: ignore
                 st.success("Ticket Created!")
             case "Update Ticket":
-                tickets.UpdateTicket(tId, newId, newSub, newPrio, newStat, newDate)# type: ignore
+                ticketsOOP.UpdateTicket(tId, newId, newSub, newPrio, newStat, newDate)# type: ignore
                 st.success("Ticket Updated!")
             case "Delete Ticket":
-                tickets.DeleteTicket(tId) # type: ignore
+                ticketsOOP.DeleteTicket(tId) # type: ignore
                 st.success("Ticket Deleted!")
 
 
@@ -251,19 +280,26 @@ def Streaming(completion):
     return fullReply
 
 
-def AIAssistant():
+def DisplayPrevMsgs():
     """
-        Implementing ChatGPT 4o mini to assist with IT related doubts
-    """   
-    st.divider()
-    st.subheader("IT Expert")
-    Debug(st.session_state.messages)
+        Displays all messages in st.session_state.messages except for messages by system 
+        System message is initial prompt given to gpt for it to know its specific role
+    """
     for message in st.session_state.messages:
         if message["role"] == "system":
             continue
         with st.chat_message(message["role"]):
             st.markdown(message["content"])
-        
+
+
+def AIAssistant():
+    """
+        Implementing ChatGPT 4o mini to assist with IT related doubts
+    """   
+    st.divider()
+    st.header("IT Expert")
+    DisplayPrevMsgs()
+    
     prompt = st.chat_input("Prompt our IT expert (GPT 4.0mini)...")
     gptMsg = [{"role": "system", "content": "You are an IT expert, you hold knowledge specialising in office related IT incidents. Make sure your responses are not too long"}]
     if prompt:
@@ -285,9 +321,29 @@ def AIAssistant():
         
         #Save AI response
         st.session_state.messages.append({ "role": "assistant", "content": fullReply })
-        Debug(st.session_state.messages)
        
-    
+
+def DisplayAllWidgets():
+    global curTab
+    curTab = st.selectbox("Tabs", ["Analysis", "CRUD Operations", "AI Assistant"], placeholder = "Analysis")
+    match curTab:
+        case "Analysis":
+            Filters()
+            Table()
+            sub: str = SelectCol()
+            RowColumnCnt(sub)
+            col1, col2 = st.columns(2)
+            with col1: 
+                BarCheck(sub)
+            with col2:
+                pass
+            LineChart()
+        case "CRUD Operations":
+            CUDTicket()
+        case "AI Assistant":    
+            AIAssistant()
+
+
 def LogOut():
     """
         Creates logout button for user.
@@ -304,21 +360,13 @@ if __name__ == "__main__":
     #Global Variables
     filterApply = False 
     filterQuery = ""
-    widgetKey: str = ""
     client = OpenAI(api_key = st.secrets["OPENAI_API_KEY"])
-    promptGiven: bool = False
+    curTab: str = ""
     
     #Preliminary Checks for login
     CheckLogIn()
     st.title("IT TICKETS")
     
     #Widgets and UI
-    Filters() 
-    Table()
-    sub: str = SelectCol()
-    RowColumnCnt(sub)
-    BarCheck(sub)
-    LineChart()
-    CUDTicket()
-    AIAssistant()
+    DisplayAllWidgets()
     LogOut()

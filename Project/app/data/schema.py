@@ -56,8 +56,7 @@ def CreateITTicketsTable(conn):
     cursor = conn.cursor()
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS IT_Tickets (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            ticket_id TEXT UNIQUE NOT NULL,
+            ticket_id TEXT PRIMARY KEY,
             subject TEXT NOT NULL,
             priority TEXT,
             status TEXT,
