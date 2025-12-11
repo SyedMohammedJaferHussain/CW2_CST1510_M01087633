@@ -2,7 +2,7 @@ import streamlit as st
 import app.services.user_service as LoginRegister
 import app.data.schema as Schema
 import auth
-
+from app.data.ticketsClass import TransferFromDB
 
 def LoginCheck() -> None:
     """
@@ -113,6 +113,7 @@ def Register(registerTab):
 
 
 if __name__ == "__main__": 
+    tickets = TransferFromDB()
     Schema.CreateAllTables()
     LoginCheck()
     GoCyber()

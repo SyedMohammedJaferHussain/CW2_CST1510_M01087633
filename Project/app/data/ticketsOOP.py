@@ -18,47 +18,34 @@ def TransferCSV():
     dbMgr.Close()
 
 
-def GetQuery(filter, column) -> str:
+def GetQuerySimple(filter, column) -> str:
     if filter:
         return f"SELECT {column} FROM IT_Tickets WHERE {filter}"
     else:
         return f"SELECT {column} from IT_Tickets"
 
 
-def GetAllTickets(filter: str, col: str):
+def GetQueryGroup(filter, column) -> str:
+    if filter:
+        return f"SELECT {column}, Count(*) FROM IT_Tickets GROUP BY {column} HAVING {filter}"
+    else:
+        return f"SELECT {column}, Count(*) from IT_Tickets GROUP BY {column}"
+
+
+def GetFilterTickets(filter: str, col: str):
     DB_PATH: str = str(Path("DATA") / "intelligence_platform.db")
     dbMgr = DatabaseManager(DB_PATH)
-    return dbMgr.FetchAll(GetQuery(filter, col))
+    query = GetQueryGroup(filter, col)
+    print(f"{query=}")
+    return dbMgr.FetchAll(query)
 
 
 def GetTable(filter: str):
     DB_PATH: str = str(Path("DATA") / "intelligence_platform.db")
     dbMgr = DatabaseManager(DB_PATH)
-    if filter:
-        df = dbMgr.FetchAll(f"SELECT * FROM IT_Tickets WHERE {filter}")
-    else:
-        df = dbMgr.FetchAll(f"SELECT * FROM IT_Tickets")
+    df = dbMgr.FetchAll(GetQuerySimple(filter, "*"))
         
     return df
-    
-
-def TotalTickets(filter: str, column: str) -> int:
-    DB_PATH: str = str(Path("DATA") / "intelligence_platform.db")
-    dbMgr = DatabaseManager(DB_PATH)
-    df = dbMgr.FetchAll(GetQuery(filter, column))
-    
-    return len(df)
-
-
-def GetDates(filter: str):
-    DB_PATH: str = str(Path("DATA") / "intelligence_platform.db")
-    dbMgr = DatabaseManager(DB_PATH)
-    if filter:  
-        query = f"SELECT created_date, COUNT(*) FROM IT_Tickets as dateAmt GROUP BY created_date HAVING {filter}"
-    else:
-        query = f"SELECT created_date, COUNT(*) FROM IT_Tickets as dateAmt GROUP BY created_date"
-
-    return dbMgr.FetchAll(query)
     
 
 def InsertTicket(tID: str, sub: str, prio: str, status: str, crDate: str) -> None:
@@ -74,6 +61,21 @@ def UpdateTicket(id: str, newId: str, newSub: str, newPrio: str, newStat :str, n
     dbMgr.Exec("""UPDATE IT_Tickets
                   SET ticket_id = ?, subject = ?, priority = ?, status = ?, created_date = ?
                   WHERE ticket_id = ?""", (newId, newSub, newPrio, newStat, newDate, id))
+
+
+def Metrics() -> tuple:
+    DB_PATH: str = str(Path("DATA") / "intelligence_platform.db")
+    dbMgr = DatabaseManager(DB_PATH)
+    queryScript = [
+                      "SELECT subject, Count(*) FROM IT_Tickets GROUP BY subject ORDER BY subject desc",
+                      "SELECT subject, Count(*) FROM IT_Tickets GROUP BY subject ORDER BY subject asc",
+                      "SELECT priority, Count(*) FROM IT_Tickets GROUP BY priority ORDER BY priority desc",
+                      "SELECT priority, Count(*) FROM IT_Tickets GROUP BY priority ORDER BY priority asc",
+                      "SELECT status, Count(*) FROM IT_Tickets GROUP BY status ORDER BY status desc",
+                      "SELECT status, Count(*) FROM IT_Tickets GROUP BY status ORDER BY status asc"]
+
+    maxSub, minSub, maxPrio, minPrio, maxStat, minStat = dbMgr.FetchScript(queryScript)
+    return maxSub, minSub, maxPrio, minPrio, maxStat, minStat
 
 
 def DeleteTicket(id: str):

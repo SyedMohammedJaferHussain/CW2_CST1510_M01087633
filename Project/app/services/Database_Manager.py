@@ -29,7 +29,6 @@ class DatabaseManager:
             self.Connect()
         cursor = self.__connection.cursor() #type: ignore
         cursor.execute(sqlQuery, tuple(params))
-        self.__connection.commit() #type: ignore
         row = cursor.fetchone()
         self.Close()
         return row
@@ -40,3 +39,15 @@ class DatabaseManager:
         df = pd.read_sql_query(sqlQuery, self.__connection)
         self.Close()
         return df
+
+    def FetchScript(self, sqlQueries: list[str]):
+        if self.__connection is None:
+            self.Connect()
+        cursor = self.__connection.cursor() #type: ignore
+        rows = []
+        for query in sqlQueries:
+            cursor.execute(query)
+            rows.append(cursor.fetchone())
+        
+        self.Close()
+        return rows

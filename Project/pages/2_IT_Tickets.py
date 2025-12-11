@@ -39,7 +39,6 @@ def SelectCol():
         Returns: selectCol (_str_): Contains column selected by user
     """
     st.divider()
-    st.subheader("Bar Chart")
     selectedCol: str = st.selectbox("X Axis", ("subject", "priority", "status"))
     return selectedCol
     
@@ -48,7 +47,7 @@ def RowColumnCnt(column: str):
     """
         Displays number of rows in the bar chart filtered output
     """
-    rowCnt = ticketsOOP.TotalTickets(filterQuery, column)
+    rowCnt = len(ticketsOOP.GetFilterTickets(filterQuery, column))
     st.text(f"Row Count: {rowCnt}")
     
 
@@ -59,8 +58,28 @@ def BarChart(df, xAxis: str):
             df (_DataFrame_): DataFrame consisting of query output from IT_Tickets Table
             xAxis (_str_): Contains the attribute from It_Tickets which will be shown on IT_Tickets
     """
-    bar = exp.bar(df, x = xAxis)
+    bar = exp.bar(df, x = xAxis, y = "Count(*)")
     st.plotly_chart(bar)
+
+def AnalysisSummary():
+    maxSub, minSub, maxPrio, minPrio, maxStat, minStat = ticketsOOP.Metrics()
+    
+    with st.container(horizontal = True):
+        cols = st.columns(2, width = 300)
+        with cols[0]:
+            st.metric("Most Records of Tickets", f"{maxSub[0]}:\n{maxSub[1]}", width = "content")
+        with cols[1]:   
+            st.metric("Least Records of Tickets", f"{minSub[0]}:\n{minSub[1]}", width = "content")    
+        cols = st.columns(2, width = 300)
+        with cols[0]:
+            st.metric("Most Records in Priority", f"{maxPrio[0]}:\n{maxPrio[1]}", width = "content")    
+        with cols[1]:   
+            st.metric("Least Records in Priority", f"{minPrio[0]}:\n{minPrio[1]}", width = "content")
+        cols = st.columns(2, width = 300)
+        with cols[0]: 
+            st.metric("Most Records in Status", f"{maxStat[0]}:\n{maxStat[1]}", width = "content")
+        with cols[1]:   
+            st.metric("Least Records in Status", f"{minStat[0]}:\n{minStat[1]}", width = "content")
 
 
 def FilterConditions(idStart: str, idStop: str, title: tuple, severity :tuple, status: tuple, dateStart :str, dateStop: str):
@@ -79,7 +98,7 @@ def FilterConditions(idStart: str, idStop: str, title: tuple, severity :tuple, s
     """
     queries: tuple = tuple()
     if idStart and idStop: #Both selected by default
-        queries += (f"id BETWEEN {idStart} AND {idStop}", )
+        queries += (f"Cast(ticket_id as INT) BETWEEN {idStart} AND {idStop}", )
     if title:
         if len(title) == 1:
             queries += (f"subject = '{title[0]}'", )
@@ -171,10 +190,11 @@ def BarCheck(column: str) -> None:
         It then calls BarChart() with 
     """
     if filterApply:
-        data = ticketsOOP.GetAllTickets(filterQuery, column)
+        data = ticketsOOP.GetFilterTickets(filterQuery, column)
+        print(data)
         BarChart(data, column)
     else:
-        data = ticketsOOP.GetAllTickets("", column)
+        data = ticketsOOP.GetFilterTickets("", column)
         BarChart(data, column)
 
 
@@ -183,10 +203,9 @@ def Table():
         Creates table using st.dataframe. 
         Contains all filtered records
     """
-    st.divider()
-    st.header("Analysis")
     st.subheader("Table")
     data = ticketsOOP.GetTable(filterQuery)
+    print(data)
     st.dataframe(data)
 
 
@@ -196,17 +215,24 @@ def LineChart():
         Contains all dates grouped by amount of records in each date
     """
     st.divider()
-    st.subheader("Line Chart")
-    data = ticketsOOP.GetDates(filterQuery)
+    st.subheader("Line Chart (Dates)")
+    data = ticketsOOP.GetFilterTickets(filterQuery, "created_date")
     st.line_chart(data, x = "created_date", color = "#5bcf7a")
 
 
-def PieChart():
+def PieChart(col: str):
     """
-        Created pie chart using
+        Created pie chart using subplots()
     """
+    data = ticketsOOP.GetFilterTickets(filterQuery, col)
+    labels = data[col].tolist()
+    sizes = data["Count(*)"].tolist()
     
-
+    fig, ax = subplots()
+    ax.pie(sizes, labels = labels, autopct = "%1.1f%%", startangle = 90)
+    ax.axis("equal")
+    st.pyplot(fig)
+    
 
 def PromptTicketInfo() -> tuple:
     """
@@ -226,13 +252,18 @@ def CUDTicket():
         Contains functions for creating, updating, and deleting tickets
     """
     st.divider()
-    st.header("CUD Operations")
-    cudChoice: str = st.selectbox("Operation", ("Create Ticket", "Update Ticket", "Delete Ticket"))
+    with st.sidebar:
+        st.header("CRUD Operations")
+        cudChoice: str = st.selectbox("Operation", ("Create Ticket", "Read Tickets", "Update Ticket", "Delete Ticket"))
     
     st.subheader(cudChoice)
+    if cudChoice == "Read Tickets":
+        Table()
+        return
+
     if cudChoice == "Create Ticket":
         tId, subjectType, date, priority, status = PromptTicketInfo()
-    else:
+    elif cudChoice != "Read Tickets":
         tId: str = st.text_input("Ticket ID") #Only require id for delete and update
     
     if cudChoice == "Update Ticket": #Creating seperate widgets for update ticket since using PromptTicketInfo raises streamlit.errors.StreamlitDuplicateElementId
@@ -242,7 +273,7 @@ def CUDTicket():
         newDate: str = str(st.date_input("Date "))
         newPrio: str = st.selectbox("Priority ", ("low", "medium", "high", "urgent"))
         newStat: str = st.selectbox("Status ", ("open", "resolved", "in progress"))
-        
+    
     if st.button(cudChoice):
         #Calling necessary functions for each CUD Operation
         match cudChoice:
@@ -329,14 +360,17 @@ def DisplayAllWidgets():
     match curTab:
         case "Analysis":
             Filters()
+            AnalysisSummary()
             Table()
-            sub: str = SelectCol()
-            RowColumnCnt(sub)
+            col: str = SelectCol()
+            RowColumnCnt(col)
             col1, col2 = st.columns(2)
             with col1: 
-                BarCheck(sub)
+                st.subheader("Bar Chart")
+                BarCheck(col)
             with col2:
-                pass
+                st.subheader("Pie Chart")
+                PieChart(col)
             LineChart()
         case "CRUD Operations":
             CUDTicket()
