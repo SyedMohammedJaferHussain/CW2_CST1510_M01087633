@@ -3,6 +3,8 @@ import app.services.user_service as LoginRegister
 import app.data.schema as Schema
 import auth
 from app.data.ticketsClass import TransferFromDB
+import pickle
+
 
 def LoginCheck() -> None:
     """
@@ -37,9 +39,8 @@ def GoCyber() -> None:
     """
     if st.session_state.logged_in:
         st.success(f"Already logged in as **{st.session_state.username}**.")
-        if st.button("Go to cyber analytics"):
-            # Use the official navigation API to switch pages
-            st.switch_page("pages/1_Cyber Analytics.py")  # path is relative to Home.py :contentReference[oaicite:1]{index=1}
+        if st.button("Go To IT Tickets"):
+            st.switch_page("pages/1_IT_Tickets.py")
         st.stop()  # Don’t show login/register again
 
 
@@ -68,7 +69,7 @@ def Login(loginTab) -> None:
                 st.success(f"Welcome back, {loginUsername}! ")
 
                 # Redirect to dashboard page
-                st.switch_page("pages/1_Cyber Analytics.py")
+                st.switch_page("pages/1_IT_Tickets.py")
             else:
                 st.error(loginSuccess[1])
 
@@ -112,8 +113,17 @@ def Register(registerTab):
                 st.info("Tip: go to the Login tab and sign in with your new account.")
 
 
+def SerializeObjs():
+    """
+        Uses pickle module to serialize(pickle) tickets (+ other classes) into binary files for reading from other files
+    """
+    with open("DATA/tickets.bin", "wb") as ticketsObjs:
+        pickle.dump(tickets, ticketsObjs)
+    
+
 if __name__ == "__main__": 
     tickets = TransferFromDB()
+    SerializeObjs()
     Schema.CreateAllTables()
     LoginCheck()
     GoCyber()

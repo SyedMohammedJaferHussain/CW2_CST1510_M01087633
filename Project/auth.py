@@ -126,9 +126,9 @@ def DisplayMenu():
     print("[3] Exit")
     print("-"*50)
     
-"""    
+
 def Main():
-    Main program loop.
+    #Main program loop.
     print("\nWelcome to the Week 7 Authentication System!")
 
     while True:
@@ -146,15 +146,14 @@ def Main():
                 continue
 
             passWord = input("Enter a password: ").strip()
+            password_confirm = input("Confirm password: ").strip()
             
             # Validate password
-            is_valid, error_msg = ValidatePassWd(passWord)
+            is_valid, error_msg = ValidatePassWd(passWord, password_confirm)
             if not is_valid:
                 print(f"Error: {error_msg}")
                 continue
-
-            # Confirm password
-            password_confirm = input("Confirm password: ").strip()
+           
             if passWord != password_confirm:
                 print("Error: Passwords do not match.")
                 continue
@@ -185,19 +184,18 @@ def Main():
             print("\nError: Invalid option. Please select 1, 2, or 3.")
    
    
-if __name__ == "__main__":
+"""if __name__ == "__main__":
     Main()         
 
-test_password = "SecurePassword123"
-# Test hashing
-hashed = HashPassword(test_password)
-print(f"Original password: {test_password}")
-print(f"Hashed password: {hashed}")
-print(f"Hash length: {len(hashed)} characters")
+    test_password = "SecurePassword123"
+    # Test hashing
+    hashed = HashPassword(test_password)
+    print(f"Original password: {test_password}")
+    print(f"Hashed password: {hashed}")
+    print(f"Hash length: {len(hashed)} characters")
 
-is_valid = PasswdVerify(test_password, hashed)
-print(f"\nVerification with correct password: {is_valid}")
+    is_valid = PasswdVerify(test_password, hashed)
+    print(f"\nVerification with correct password: {is_valid}")
 
-is_invalid = PasswdVerify("WrongPassword", hashed)
-print(f"Verification with incorrect password: {is_invalid}")
-"""
+    is_invalid = PasswdVerify("WrongPassword", hashed)
+    print(f"Verification with incorrect password: {is_invalid}")"""
