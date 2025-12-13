@@ -20,11 +20,10 @@ def CreateCyberIncidentsTable(conn):
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS Cyber_Incidents (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            date TEXT,
             incident_type TEXT,
             severity TEXT,
             status TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            date TEXT
         )
     """)
     conn.commit()
@@ -56,7 +55,7 @@ def CreateITTicketsTable(conn):
     cursor = conn.cursor()
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS IT_Tickets (
-            ticket_id TEXT PRIMARY KEY,
+            ticket_id INTEGER PRIMARY KEY AUTOINCREMENT,
             subject TEXT NOT NULL,
             priority TEXT,
             status TEXT,

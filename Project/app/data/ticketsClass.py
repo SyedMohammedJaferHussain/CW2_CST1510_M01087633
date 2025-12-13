@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any
 import pandas as pd
 import pickle
+import csv
 
 
 def TransferFromDB():
@@ -22,6 +23,7 @@ def TransferFromDB():
     for i in range(len(df)):
         ticket: ITTicket = ITTicket(int(ids[i]), subs[i], prios[i], stats[i], crDates[i])
         itTickets.append(ticket)
+        print(ticket)
     
     return itTickets
 
@@ -91,7 +93,7 @@ def AddCnt(hash: dict, col: Any, colName: str) -> None:
 def GetRows(filters: dict) -> pd.DataFrame:
     """
         Explanation: 
-            Iterates through all rows of tickets, if filter pass, it appends to dataframe
+            Iterates through all rows of incidents, if filter pass, it appends to dataframe
         Args:
             filters (_dict_): Contains filters of form dict[str, function]
         Returns:
@@ -180,14 +182,16 @@ def GetIDs(tickets: list[ITTicket]) -> list[int]:
     ids: list[int] = []
     for ticket in tickets:
         ids.append(ticket.GetID())
+    print(ids)
     return ids
 
 
 def CheckID(tickets: list[ITTicket], id: int) -> bool:
-    return False if id in GetIDs(tickets) else True
+    """If found return True, if not found return false"""
+    return True if id in GetIDs(tickets) else False
 
 
-def InsertTicket(tID: int, sub: str, prio: str, status: str, crDate: str) -> None | bool:
+def InsertTicket(tID: int, sub: str, prio: str, status: str, crDate: str) -> bool:
     """
         Args:
             tID (int): Contains new ticket id
@@ -197,16 +201,17 @@ def InsertTicket(tID: int, sub: str, prio: str, status: str, crDate: str) -> Non
             crDate (str): Contains new ticket createdDate
 
         Returns:
-            None | bool: False if ID exists in tickets, else None
+            bool: True if ticket added, False if not added
     """    
-
-    
     tickets: list[ITTicket] = GetTickets()
     ticket: ITTicket = ITTicket(tID, sub, prio, status, crDate)
-    if not CheckID(tickets, tID):
+    check = CheckID(tickets, tID)
+    print(check)
+    if check:
         return False
     tickets.append(ticket)
     WriteTickets(tickets)
+    return True
 
 
 def GetIndex(lst: list[ITTicket], target: int) -> int:
@@ -304,7 +309,7 @@ def GetMaxMin(dictionary: dict[str, str | int]) -> None:
             dictionary["MinCol"] = col
     
 
-def Metrics():
+def Metrics(filters: dict):
     """
         Explanation:  
             Creates 3 dictionaries (subjects, priorities, statusS) of form dict[str, str | int]
@@ -320,6 +325,8 @@ def Metrics():
     statusS: dict[str, str | int]  = dict()
 
     for i in range(len(tickets)):
+        if not CheckFilters(filters, tickets[i]):
+            continue 
         ticket = tickets[i]
         
         subject: str = ticket.GetSub()

@@ -1,5 +1,5 @@
 import streamlit as st
-import app.data.ticketsClass as tickets
+import app.data.incidentsClass as incidents
 import plotly.express as exp
 from openai import OpenAI
 from matplotlib.pyplot import subplots
@@ -14,8 +14,8 @@ def Debug(*args) -> None:
     """
     for arg in args:
         print(f"{arg=}")
-        
-        
+
+
 def CheckLogIn() -> None: 
     """
         Check if user is in logged in state
@@ -25,8 +25,8 @@ def CheckLogIn() -> None:
         st.session_state.logged_in = False
     if "username" not in st.session_state:
         st.session_state.username = ""
-    if "itMsgs" not in st.session_state:
-        st.session_state.itMsgs = list()
+    if "cyberMsgs" not in st.session_state:
+        st.session_state.cyberMsgs = list()
 
     if not st.session_state.logged_in:
         st.error("You must be logged in to view the dashboard.")
@@ -35,13 +35,13 @@ def CheckLogIn() -> None:
         st.stop()
 
 
-def SelectCol() -> Literal['subject', 'priority', 'status']:
+def SelectCol() -> Literal["incident_type", "severity", "status"]:
     """
         Creates a selectbox for user to select subject, priority, or status
         Returns: selectCol (_str_): Contains column selected by user
     """
     st.divider()
-    selectedCol: str = st.selectbox("X Axis", ("subject", "priority", "status"))
+    selectedCol: str = st.selectbox("X Axis", ("incident_type", "severity", "status"))
     return selectedCol
     
     
@@ -49,7 +49,7 @@ def RowColumnCnt() -> None:
     """
         Displays metric containing number of rows in filtered output
     """
-    rowCnt = tickets.GetRowCnt(filterCons)
+    rowCnt = incidents.GetRowCnt(filterCons)
     st.metric("Row Count", rowCnt)
     
 
@@ -57,7 +57,7 @@ def BarChart(df, col: str):
     """
         Explanation: Creates a plotly.expressbar chart displaying column and number of occurances of column from df
         Args:
-            df (_DataFrame_): DataFrame consisting of query output from IT_Tickets Table
+            df (_DataFrame_): DataFrame consisting of query output from Cyber_Incidents Table
     """
     bar = exp.bar(df, x = col, y = "Count")
     st.plotly_chart(bar)
@@ -65,16 +65,16 @@ def BarChart(df, col: str):
 
 def AnalysisSummary() -> None:
     """
-        Explanation: Creates 6 metrics for most and least amounts of tickets, priorities, and statuses
+        Explanation: Creates 6 metrics for most and least amounts of incidents, priorities, and statuses
         Returns: None
     """
-    subjects, priorities, statusS = tickets.Metrics(filterCons)  
+    incidentTypes, severities, statusS = incidents.Metrics()  
     
     with st.container(horizontal = True):
-        st.metric("Most Records of Tickets", f"{subjects["MaxCol"].title()}:\n{subjects["MaxVal"]}", width = "content", border = True) #type: ignore 
-        st.metric("Least Records of Tickets", f"{subjects["MinCol"].title()}:\n{subjects["MinVal"]}", width = "content", border = True) #type: ignore 
-        st.metric("Most Records of Priorities", f"{priorities["MaxCol"].title()}:\n{priorities["MaxVal"]}", width = "content", border = True) #type: ignore 
-        st.metric("Least Records of Priorities", f"{priorities["MinCol"].title()}:\n{priorities["MinVal"]}", width = "content", border = True) #type: ignore 
+        st.metric("Most Records of Incidents", f"{incidentTypes["MaxCol"].title()}:\n{incidentTypes["MaxVal"]}", width = "content", border = True) #type: ignore 
+        st.metric("Least Records of Incidents", f"{incidentTypes["MinCol"].title()}:\n{incidentTypes["MinVal"]}", width = "content", border = True) #type: ignore 
+        st.metric("Most Records of Priorities", f"{severities["MaxCol"].title()}:\n{severities["MaxVal"]}", width = "content", border = True) #type: ignore 
+        st.metric("Least Records of Priorities", f"{severities["MinCol"].title()}:\n{severities["MinVal"]}", width = "content", border = True) #type: ignore 
         st.metric("Most Records of Statuses", f"{statusS["MaxCol"].title()}:\n{statusS["MaxVal"]}", width = "content", border = True) #type: ignore 
         st.metric("Least Records of Statuses", f"{statusS["MinCol"].title()}:\n{statusS["MinVal"]}", width = "content", border = True) #type: ignore 
 
@@ -90,30 +90,30 @@ def GetDate(dateVal: str) -> date:
     return date(int(year), int(month), int(day))
     
 
-def FilterConditions(idStart: str, idStop: str, titles: tuple, priorities :tuple, status: tuple, dateStart :str, dateStop: str):
+def FilterConditions(idStart: str, idStop: str, incTypes: tuple, severities :tuple, status: tuple, dateStart :str, dateStop: str):
     """
         Explanation: 
             Checks every filter variable. If filled: adds key: value pair to filterCons of form {column: lambda function}
         Args:
             idStart (_str_): Start range of ID
             idStop (_str_): Stop range of ID
-            titles (_tuple_): Titles to check for
-            priorities (_tuple_): Priorities to check for
+            incTypes (_tuple_): Incidents to check for
+            severities (_tuple_): Severities to check for
             status (_tuple_): Status to check for
             dateStart (_str_): Start range of date
             dateStop (_str_): Stop range of date
     """
     global filterCons
     if idStart and idStop: #Both selected by default
-        filterCons["ticket_id"] = lambda tId: int(idStart) <= tId <= int(idStop)
-    if titles:
-        filterCons["subject"] = lambda sub: sub in titles
-    if priorities:
-        filterCons["priority"] = lambda prio: prio in priorities
+        filterCons["id"] = lambda tId: int(idStart) <= tId <= int(idStop)
+    if incTypes:
+        filterCons["incident_type"] = lambda sub: sub in incTypes
+    if severities:
+        filterCons["severity"] = lambda prio: prio in severities
     if status:
         filterCons["status"] = lambda stat: stat in status
     if dateStart: #Selected as today by default
-        filterCons["created_date"] = lambda date: GetDate(dateStart) <= GetDate(date) <= GetDate(dateStop)
+        filterCons["date"] = lambda date: GetDate(dateStart) <= GetDate(date) <= GetDate(dateStop)
 
 
 def Filters() -> None:
@@ -131,21 +131,21 @@ def Filters() -> None:
             idStart: str = str(st.text_input("Start Value"))
             idStop: str = str(st.text_input("Stop Value"))
             
-        with st.expander("**Subject**"):
-            titleFil: tuple = tuple(st.multiselect("Subject", ("Printer not working", "Password reset request", "VPN connection issue", "Network outage", "Access request", "Software installation needed", "Malware alert", "Laptop not booting", "System Crash", "Email not syncing")))
+        with st.expander("**Incident Type**"):
+            incFil: tuple = tuple(st.multiselect("Incident Type", ("DDos Attack", "Phishing email detected", "Data breach", "Zero-day exploit activity", "Firewall breach", "Suspicious login", "Malware infection", "Unauthorized access attempt", "SQL injection attempt")) )
 
-        with st.expander("**Priority**"):
-            prioFil: tuple = tuple(st.multiselect("Priority", ("low", "medium", "high", "urgent")))
+        with st.expander("**Severity**"):
+            sevFil: tuple = tuple(st.multiselect("Severity", ("low", "medium", "high", "critical")))
             
         with st.expander("**Status**"):
-            statusFil: tuple = tuple(st.multiselect("Status", ("open", "in progress", "resolved")))
+            statusFil: tuple = tuple(st.multiselect("Status", ("open", "investigating", "resolved")))
         
         with st.expander("**Date**"):
             dateStart = st.date_input("Start Value", value = "2020-01-01")
             dateStop = st.date_input("Stop Value")
             
         if st.button("Apply Filters"):
-            FilterConditions(idStart, idStop, titleFil, prioFil, statusFil, str(dateStart), str(dateStop))
+            FilterConditions(idStart, idStop, incFil, sevFil, statusFil, str(dateStart), str(dateStop))
             global filterApply #Filter is currently being applied
             filterApply = True
             
@@ -156,10 +156,10 @@ def BarCheck(column: str) -> None:
         It then calls BarChart() with 
     """
     if filterApply:
-        data = tickets.GetColCount(filterCons, column)
+        data = incidents.GetColCount(filterCons, column)
         BarChart(data, column)
     else:
-        data = tickets.GetColCount(None, column) #type: ignore
+        data = incidents.GetColCount(None, column) #type: ignore
         BarChart(data, column)
 
 
@@ -169,7 +169,7 @@ def Table() -> None:
         Contains all filtered records
     """
     st.subheader("Table")
-    data = tickets.GetRows(filterCons)
+    data = incidents.GetRows(filterCons)
     st.dataframe(data)
 
 
@@ -180,8 +180,8 @@ def LineChart() -> None:
     """
     st.divider()
     st.subheader("Line Chart (Dates)")
-    data = tickets.GetColCount(filterCons, "created_date")
-    st.line_chart(data, x = "created_date", y = "Count", color = "#4bd16f")
+    data = incidents.GetColCount(filterCons, "date")
+    st.line_chart(data, x = "date", y = "Count", color = "#4bd16f")
 
 
 def PieChart(col: str) -> None:
@@ -189,7 +189,7 @@ def PieChart(col: str) -> None:
         Creates pie chart taking values from GetColCount() and matplotlib.subplots()
         
     """
-    data = tickets.GetColCount(filterCons, col)
+    data = incidents.GetColCount(filterCons, col)
     labels = data[col].tolist()
     sizes = data["Count"].tolist()
     
@@ -201,63 +201,63 @@ def PieChart(col: str) -> None:
 
 def PromptTicketInfo() -> tuple:
     """
-        Creates text input widgets for id, subject, date, priority, and status
+        Creates text input widgets for id, incident_type, date, severity, and status
         Returns: (_tuple_): Variables containing user input for each column
     """
     tId: str = st.text_input("Ticket ID")
-    subjectType: str = st.selectbox("Incident Type", ("Printer not working", "Password reset request", "VPN connection issue", "Network outage", "Access request", "Software installation needed", "Malware alert", "Laptop not booting", "System Crash", "Email not syncing"))
+    incidentType: str = st.selectbox("Incident Type", ("DDos Attack", "Phishing email detected", "Data breach", "Zero-day exploit activity", "Firewall breach", "Suspicious login", "Malware infection", "Unauthorized access attempt", "SQL injection attempt"))
     date: str = str(st.date_input("Date"))
-    priority: str = st.selectbox("Priority", ("low", "medium", "high", "urgent"))
-    status: str = st.selectbox("Status", ("open", "resolved", "in progress"))
+    severity: str = st.selectbox("Severity", ("low", "medium", "high", "critical"))
+    status: str = st.selectbox("Status", ("open", "resolved", "investigating"))
     
-    return tId, subjectType, priority, status, date
+    return tId, incidentType, severity, status, date
 
 
 def CRUDTicket():
     """
-        Contains functions for creating, updating, and deleting tickets
+        Contains functions for creating, updating, and deleting incidents
         Explanation:
             Allows user to choose selectbox between CRUD Operations
             Calls PromptTicketInfo() or displays necessary input prompt areas for getting user input
-            When button pressed, take user input and call relevant function from ticketsClass.py
+            When button pressed, take user input and call relevant function from incidentsClass.py
     """
     st.divider()
     with st.sidebar:
         st.header("CRUD Operations")
-        cudChoice: str = st.selectbox("Operation", ("Create Ticket", "Read Tickets", "Update Ticket", "Delete Ticket"))
+        cudChoice: str = st.selectbox("Operation", ("Create Incident", "Read Incident", "Update Incident", "Delete Incident"))
     
     st.subheader(cudChoice)
-    if cudChoice == "Read Tickets":
+    if cudChoice == "Read Incident":
         Table()
         return
 
-    if cudChoice == "Create Ticket":
-        tId, subjectType, priority, status, date = PromptTicketInfo()
-    elif cudChoice != "Read Tickets":
-        tId: str = st.text_input("Ticket ID") #Only require id for delete and update
+    if cudChoice == "Create Incident":
+        tId, incType, severity, status, date = PromptTicketInfo()
+    elif cudChoice != "Read Incident":
+        tId: str = st.text_input("Incident ID") #Only require id for delete and update
     
-    if cudChoice == "Update Ticket": #Creating seperate widgets for update ticket since using PromptTicketInfo() raises streamlit.errors.StreamlitDuplicateElementId
+    if cudChoice == "Update Incident": #Creating seperate widgets for update ticket since using PromptTicketInfo() raises streamlit.errors.StreamlitDuplicateElementId
         st.markdown("**Updated Values**")
-        newId: str = st.text_input("Ticket ID ")
-        newSub: str = st.selectbox("Incident Type ", ("Printer not working", "Password reset request", "VPN connection issue", "Network outage", "Access request", "Software installation needed", "Malware alert", "Laptop not booting", "System Crash", "Email not syncing"))
+        newId: str = st.text_input("Incident ID ")
+        newInc: str = st.selectbox("Incident Type ", ("DDos Attack", "Phishing email detected", "Data breach", "Zero-day exploit activity", "Firewall breach", "Suspicious login", "Malware infection", "Unauthorized access attempt", "SQL injection attempt"))
         newDate: str = str(st.date_input("Date "))
-        newPrio: str = st.selectbox("Priority ", ("low", "medium", "high", "urgent"))
-        newStat: str = st.selectbox("Status ", ("open", "resolved", "in progress"))
+        newSev: str = st.selectbox("Priority ", ("low", "medium", "high", "critical"))
+        newStat: str = st.selectbox("Status ", ("open", "resolved", "investigating"))
     
     if st.button(cudChoice):
-        #Calling necessary functions for each CUD Operation
+        #Calling necessary functions for each CRUD Operation
         match cudChoice:
-            case "Create Ticket":
-                result = tickets.InsertTicket(int(tId), subjectType, priority, status, date) # type: ignore
+            case "Create Incident":
+                result = incidents.InsertIncident(tId, incType, severity, status, date) #type: ignore
                 if not type(result):
                     st.error("Ticket ID Exists!")
                 else:      
                     st.success("Ticket Created!")
-            case "Update Ticket":
-                tickets.UpdateTicket(tId, newId, newSub, newPrio, newStat, newDate)# type: ignore
+            case "Update Incident":
+                incidents.UpdateIncident(tId, newId, newInc, newSev, newStat, newDate) #type: ignore
                 st.success("Ticket Updated!")
-            case "Delete Ticket":
-                tickets.DeleteTicket(tId) # type: ignore
+            case "Delete Incident":
+                incidents.DeleteIncident(tId)
                 st.success("Ticket Deleted!")
 
 
@@ -286,10 +286,10 @@ def Streaming(completion):
 
 def DisplayPrevMsgs():
     """
-        Displays all messages in st.session_state.itMsgs except for messages by system 
+        Displays all messages in st.session_state.cyberMsgs except for messages by system 
         System message is initial prompt given to gpt for it to know its specific role
     """
-    for message in st.session_state.itMsgs:
+    for message in st.session_state.cyberMsgs:
         if message["role"] == "system":
             continue
         with st.chat_message(message["role"]):
@@ -305,10 +305,10 @@ def AIAssistant():
     DisplayPrevMsgs()
     
     prompt = st.chat_input("Prompt our IT expert (GPT 4.0mini)...")
-    gptMsg = [{"role": "system", "content": "You are an IT expert, you hold knowledge specialising in office related IT incidents. Make sure your responses are not too long"}]
+    gptMsg = [{"role": "system", "content": "You are an expert in office related cyber incidents. Make sure your responses are not too long"}]
     if prompt:
         #Save user response
-        st.session_state.itMsgs.append({ "role": "user", "content": prompt })
+        st.session_state.cyberMsgs.append({ "role": "user", "content": prompt })
         with st.chat_message("user"): 
             st.markdown(prompt)
         
@@ -316,7 +316,7 @@ def AIAssistant():
         with st.spinner("Thinking..."):
             completion = client.chat.completions.create( 
                 model = "gpt-4o-mini",
-                messages = gptMsg + st.session_state.itMsgs,
+                messages = gptMsg + st.session_state.cyberMsgs,
                 stream = True,
             )
             
@@ -324,7 +324,7 @@ def AIAssistant():
             fullReply = Streaming(completion)
         
         #Save AI response
-        st.session_state.itMsgs.append({ "role": "assistant", "content": fullReply })
+        st.session_state.cyberMsgs.append({ "role": "assistant", "content": fullReply })
        
 
 def DisplayAllWidgets() -> None:
@@ -332,7 +332,7 @@ def DisplayAllWidgets() -> None:
         Handles all UI elements in this page
         Allows user to switch between Analysis, CRUD Operations, and AI Assistant
             Analysis: Contains Table, Barchart, Piechart, Linechart, Metrics, and Filters
-            CRUD Operations: Contains Create, Read, Update, and Delete tickets
+            CRUD Operations: Contains Create, Read, Update, and Delete incidents
             AI Assistant: Contains OpenAI API Interface with specialised chatbot for IT Related help
     """
     global curTab
@@ -361,12 +361,12 @@ def DisplayAllWidgets() -> None:
 def LogOut():
     """
         Creates logout button for user
-        Calls tickets.Commit() which saves all changes to DATA/intelligence_platform.db 
+        Calls incidents.Commit() which saves all changes to DATA/intelligence_platform.db 
         Logs out user and switches page to Home.py
     """
     st.divider()
     if st.button("Log out", ):
-        tickets.Commit()
+        incidents.Commit()
         st.session_state.logged_in = False
         st.session_state.username = ""
         st.info("You have been logged out.")
@@ -382,7 +382,7 @@ if __name__ == "__main__": #Main function
     
     #Preliminary Checks for login
     CheckLogIn()
-    st.title("IT TICKETS")
+    st.title("Cyber Incidents")
     
     #Widgets and UI
     DisplayAllWidgets()

@@ -2,7 +2,8 @@ import streamlit as st
 import app.services.user_service as LoginRegister
 import app.data.schema as Schema
 import auth
-from app.data.ticketsClass import TransferFromDB
+import app.data.ticketsClass as tickets
+import app.data.incidentsClass as incidents
 import pickle
 
 
@@ -118,11 +119,14 @@ def SerializeObjs():
         Uses pickle module to serialize(pickle) tickets (+ other classes) into binary files for reading from other files
     """
     with open("DATA/tickets.bin", "wb") as ticketsObjs:
-        pickle.dump(tickets, ticketsObjs)
-    
+        pickle.dump(ticketsLst, ticketsObjs)
+    with open("DATA/incidents.bin", "wb") as incidentsObjs:
+        pickle.dump(incidentsLst, incidentsObjs)
+
 
 if __name__ == "__main__": 
-    tickets = TransferFromDB()
+    ticketsLst = tickets.TransferFromDB()
+    incidentsLst = incidents.TransferFromDB()
     SerializeObjs()
     Schema.CreateAllTables()
     LoginCheck()
